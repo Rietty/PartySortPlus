@@ -226,7 +226,7 @@ namespace PartySortPlus.GUI
                         ImGui.TableNextColumn();
                         {
                             ImGuiEx.SetNextItemFullWidth();
-                            if (ImGui.BeginCombo("##glamour", rule.SelectedPresets.PrintRange(out var fullList, "- None -"), PartySortPlus.C.ComboSize))
+                            if (ImGui.BeginCombo("##glamour", rule.SelectedPresets.Count > 0 ? rule.SelectedPresets[0] : "- None -", PartySortPlus.C.ComboSize))
                             {
                                 FiltersSelection();
                                 var designs = Profile.Presets.OrderBy(x => x.Name);
@@ -234,23 +234,22 @@ namespace PartySortPlus.GUI
                                 {
                                     var name = x.Name;
                                     if (Filters[filterCnt].Length > 0 && !name.Contains(Filters[filterCnt], StringComparison.OrdinalIgnoreCase)) continue;
-                                    if (OnlySelected[filterCnt] && !rule.SelectedPresets.Contains(name)) continue;
+                                    if (OnlySelected[filterCnt] && rule.SelectedPresets.Count > 0 && rule.SelectedPresets[0] != name) continue;
 
-                                    bool selected = rule.SelectedPresets.Contains(name);
+                                    bool selected = rule.SelectedPresets.Count > 0 && rule.SelectedPresets[0] == name;
                                     if (ImGui.Selectable(name, selected))
                                     {
-                                        if (selected)
-                                            rule.SelectedPresets.Remove(name);
-                                        else
-                                            rule.SelectedPresets.Add(name);
+                                        rule.SelectedPresets.Clear();
+                                        rule.SelectedPresets.Add(name);
                                     }
                                 }
                                 ImGui.EndCombo();
                             }
-                            if (fullList != null) ImGuiEx.Tooltip(UI.AnyNotice + fullList);
+                            if (rule.SelectedPresets.Count > 0)
+                                ImGuiEx.Tooltip(UI.AnyNotice + rule.SelectedPresets[0]);
                             filterCnt++;
                         }
-                 
+
                         // Delete
                         ImGui.TableNextColumn();
                         if (ImGuiEx.IconButton(FontAwesomeIcon.Trash) && ImGui.GetIO().KeyCtrl)

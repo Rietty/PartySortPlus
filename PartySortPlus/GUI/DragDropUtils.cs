@@ -24,7 +24,7 @@ namespace PartySortPlus.GUI
             }
         }
 
-        public static void MoveItemToPosition<T>(List<T> list, Func<T, bool> match, int newIndex)
+        private static void MoveItemToPosition<T>(List<T> list, Func<T, bool> match, int newIndex)
         {
             var item = list.FirstOrDefault(match);
             if (item == null) return;

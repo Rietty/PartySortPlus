@@ -30,7 +30,7 @@ namespace PartySortPlus.GUI
             }
 
             EzConfigGui.Window.RespectCloseHotkey = true;
-            EzConfigGui.Window.SetSizeConstraints(new Vector2(800, 800), new Vector2(800, 1200));
+            EzConfigGui.Window.SetSizeConstraints(new Vector2(800, 900), new Vector2(1200, 1200));
 
             if (PartySortPlus.C != null)
             {

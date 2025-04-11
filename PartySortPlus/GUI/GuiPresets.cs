@@ -1,6 +1,5 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
-using Dalamud.Plugin.Services;
 using ECommons.ExcelServices;
 using ECommons.ImGuiMethods;
 using ECommons.Logging;
@@ -59,6 +58,7 @@ namespace PartySortPlus.GUI
                                 PartySortPlus.C.GlobalProfile.SelectedPreset = null;
                             }
                         }
+                        ImGuiEx.Tooltip("Hold CTRL+Click to delete");
 
                         leftPanelStyle.Pop();
                     }
@@ -105,20 +105,51 @@ namespace PartySortPlus.GUI
                                 ImGui.Text("Settings:");
                                 ImGui.Checkbox("Place YOUR name at top of list?", ref selectedPreset.isPlayerAtTop);
                             }
-                            
+
                             ImGui.TextWrapped("You can drag and drop jobs to reorder them according to your desired sorting preferences.");
                             using (ImRaii.Child("JobOrderList", new Vector2(0, ImGui.GetContentRegionAvail().Y), true))
                             {
-                                foreach (var job in selectedPreset.JobOrder)
+                                var jobOrder = selectedPreset.JobOrder;
+                                for (int i = 0; i < jobOrder.Count; i++)
                                 {
+                                    var job = jobOrder[i];
+
+                                    ImGui.BeginGroup();
+
+                                    bool canMoveUp = i > 0;
+                                    bool canMoveDown = i < jobOrder.Count - 1;
+
+                                    ImGui.BeginDisabled(!canMoveUp);
+                                    if (ImGuiEx.IconButton(FontAwesomeIcon.ArrowUp, $"##up_{i}"))
+                                    {
+                                        (jobOrder[i - 1], jobOrder[i]) = (jobOrder[i], jobOrder[i - 1]);
+                                        PluginLog.Debug($"Moved job '{job}' up to position {i - 1}");
+                                    }
+                                    ImGui.EndDisabled();
+
+                                    ImGui.SameLine();
+
+                                    ImGui.BeginDisabled(!canMoveDown);
+                                    if (ImGuiEx.IconButton(FontAwesomeIcon.ArrowDown, $"##down_{i}"))
+                                    {
+                                        (jobOrder[i], jobOrder[i + 1]) = (jobOrder[i + 1], jobOrder[i]);
+                                        PluginLog.Debug($"Moved job '{job}' down to position {i + 1}");
+                                    }
+                                    ImGui.EndDisabled();
+
+                                    ImGui.SameLine();
+
                                     if (ThreadLoadImageHandler.TryGetIconTextureWrap((uint)job.GetIcon(), false, out var texture))
                                     {
                                         ImGui.Image(texture.ImGuiHandle, iconSize);
-                                        ImGui.SameLine();
                                     }
+                                    ImGui.SameLine();
                                     var cursor = ImGui.GetCursorPos();
-                                    ImGui.SetCursorPos(new Vector2(cursor.X - 5, cursor.Y + 4)); // push down by 2 pixels
+                                    ImGui.SetCursorPos(new Vector2(cursor.X - 5, cursor.Y + 4));
                                     ImGui.Text($"{job}");
+
+                                    ImGui.EndGroup();
+                                    ImGui.Separator();
                                 }
                             }
                         }

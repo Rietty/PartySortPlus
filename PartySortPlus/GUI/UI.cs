@@ -40,7 +40,7 @@ namespace PartySortPlus.GUI
                         ("Rules", GuiRules.Draw, ImGuiColors.DalamudViolet, true),
                         ("Presets", GuiPresets.Draw, ImGuiColors.DalamudViolet, true),
                         (PartySortPlus.C.Debug ? "Overrides" : null, GuiOverrides.Draw, ImGuiColors.DalamudYellow, true),
-                        ("Settings", GuiSettings.Draw, null, true),
+                        (PartySortPlus.C.Debug ? "Settings" : null, GuiSettings.Draw, null, true),
                         InternalLog.ImGuiTab(),
                         (PartySortPlus.C.Debug ? "Debug" : null, GuiDebug.Draw, ImGuiColors.DalamudGrey3, true),
                 });

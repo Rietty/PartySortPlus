@@ -20,8 +20,9 @@ namespace PartySortPlus.GUI
         {
             if (PartySortPlus.C != null)
             {
-                ImGuiEx.CheckboxInverted("Hide tutorial", ref PartySortPlus.C.ShowTutorial);
+                ImGuiEx.CheckboxInverted("Hide Tutorial!", ref PartySortPlus.C.ShowTutorial);
             }
+            ImGui.Separator();
             ImGuiEx.TextWrapped(Content);
         }
     }

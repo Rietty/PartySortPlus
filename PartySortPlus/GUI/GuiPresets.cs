@@ -1,5 +1,6 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
+using ECommons.Configuration;
 using ECommons.ExcelServices;
 using ECommons.ImGuiMethods;
 using ECommons.Logging;
@@ -103,7 +104,9 @@ namespace PartySortPlus.GUI
                             using (ImRaii.Child("PresetSettings", new Vector2(0, ImGui.GetFrameHeight() * 2)))
                             {
                                 ImGui.Text("Settings:");
-                                ImGui.Checkbox("Place YOUR name at top of list?", ref selectedPreset.isPlayerAtTop);
+                                ImGui.BeginDisabled();
+                                ImGui.Checkbox("Place YOUR name at top of list? (WIP)", ref selectedPreset.isPlayerAtTop);
+                                ImGui.EndDisabled();
                             }
 
                             ImGui.TextWrapped("You can drag and drop jobs to reorder them according to your desired sorting preferences.");
@@ -124,6 +127,7 @@ namespace PartySortPlus.GUI
                                     {
                                         (jobOrder[i - 1], jobOrder[i]) = (jobOrder[i], jobOrder[i - 1]);
                                         PluginLog.Debug($"Moved job '{job}' up to position {i - 1}");
+                                        EzConfig.Save();
                                     }
                                     ImGui.EndDisabled();
 
@@ -134,6 +138,7 @@ namespace PartySortPlus.GUI
                                     {
                                         (jobOrder[i], jobOrder[i + 1]) = (jobOrder[i + 1], jobOrder[i]);
                                         PluginLog.Debug($"Moved job '{job}' down to position {i + 1}");
+                                        EzConfig.Save();
                                     }
                                     ImGui.EndDisabled();
 

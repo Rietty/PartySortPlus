@@ -16,6 +16,8 @@ using ECommons.GameHelpers;
 using System.Collections.Generic;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using System.Linq;
+using FFXIVClientStructs.FFXIV.Client.UI.Info;
+using ECommons.ExcelServices;
 
 namespace PartySortPlus;
 
@@ -99,14 +101,17 @@ public unsafe class PartySortPlus: IDalamudPlugin
         {
             EzConfigGui.Window.IsOpen ^= true;
         }
-        else if (arguments.EqualsIgnoreCaseAny("mini"))
+        else if(arguments.EqualsIgnoreCaseAny("tutorial"))
         {
-            AgentHUD.Instance()->PartyMembers[0].Index = 1;
-            AgentHUD.Instance()->PartyMembers[1].Index = 0;
+            if (C != null)
+            {
+                C.ShowTutorial = !C.ShowTutorial;
+                DuoLog.Information($"Tutorial mode is now {(C.ShowTutorial ? "enabled" : "disabled")}");
+            }
         }
         else
         {
-           ForceUpdate = true;
+            ForceUpdate = true;
         }
     }
 
@@ -145,100 +150,102 @@ public unsafe class PartySortPlus: IDalamudPlugin
                             }
                         }
                     }
-                    if (ForceUpdate || (SoftForceUpdate && newRule.Count >0))
+                    if (ForceUpdate || (SoftForceUpdate && newRule.Count > 0))
                     {
                         SoftForceUpdate = false;
                         ForceUpdate = false;
                         PluginLog.Debug($"Force updating party list with {newRule.Count} rules.");
 
-                        // Iterate through the rules and filter them based on the conditions.
-                        // We need the following: PartyJobs have to be all in the current party, Our Player's job has to match one of the jobs in the rule, and the territory has to match.
-                        PluginLog.Debug($"Checking {newRule.Count} rules.");
                         PluginLog.Debug($"Current territory: {Player.Territory}");
                         PluginLog.Debug($"Current job: {Player.Job}");
+
                         foreach (ref var partyMember in AgentHUD.Instance()->PartyMembers)
                         {
-                            if (partyMember.Object == null) continue;
+                            if (partyMember.Object == null) { continue; }
                             PluginLog.Debug($"Current party member: {partyMember.Name}");
                             PluginLog.Debug($"Current party member job: {partyMember.Object->ClassJob}");
                         }
 
-                        // Rule filtering logic
                         foreach (var rule in newRule)
                         {
-                            bool skipTerritoryCheck = false;
-                            bool skipJobCheck = false;
-                            bool skipPartyJobCheck = false;
+                            bool skipTerritoryCheck = rule.Territories.Count == 0;
+                            bool skipJobCheck = rule.Jobs.Count == 0;
+                            bool skipPartyJobCheck = rule.PartyJobs.Count == 0;
 
                             PluginLog.Debug($"Checking rule: {rule.GUID}");
-                            if (rule.Territories.Count() == 0) skipTerritoryCheck = true;
-                            if (rule.Jobs.Count() == 0) skipJobCheck = true;
-                            if (rule.PartyJobs.Count() == 0) skipPartyJobCheck = true;
 
-                            if (skipTerritoryCheck) PluginLog.Debug($"Territory check skipped for rule: {rule.GUID}");
-                            if (skipJobCheck) PluginLog.Debug($"Job check skipped for rule: {rule.GUID}");
-                            if (skipPartyJobCheck) PluginLog.Debug($"Party job check skipped for rule: {rule.GUID}");
+                            if (skipTerritoryCheck) { PluginLog.Debug($"Territory check skipped."); }
+                            if (skipJobCheck) { PluginLog.Debug($"Job check skipped."); }
+                            if (skipPartyJobCheck) { PluginLog.Debug($"Party job check skipped."); }
 
-                            // Check to see if the territory skip is false, and if so, does our territory be contained or not?
-                            if (!skipTerritoryCheck && rule.Territories.Contains(Player.Territory))
+                            if (!skipTerritoryCheck)
                             {
-                                PluginLog.Debug($"Territory check passed for rule: {rule.GUID}");
-                            } else
-                            {
-                                continue;
-                            }
-
-                            // Check to see if the job skip is false, and if so, does our job be contained or not?
-                            if (!skipJobCheck && rule.Jobs.Contains(Player.Job))
-                            {
-                                PluginLog.Debug($"Job check passed for rule: {rule.GUID}");
-                            }
-                            else
-                            {
-                                continue;
-                            }
-
-                            // Check to see if ALL of the party jobs that we currently have in party (GetPartyMemberJobs()) are contained in the rule, if so we can proceed, else skip the rule.
-                            var partyJobs = GetPartyMemberJobs();
-                            var allPartyJobsContained = true;
-                            foreach (var job in rule.PartyJobs)
-                            {
-                                if (!partyJobs.Contains(job.ToString()))
+                                if (!rule.Territories.Contains(Player.Territory))
                                 {
-                                    allPartyJobsContained = false;
-                                    PluginLog.Debug($"Party job check failed for rule: {rule.GUID}");
-                                    break;
+                                    PluginLog.Debug($"Territory check failed.");
+                                    continue;
                                 }
+                                PluginLog.Debug($"Territory check passed.");
                             }
 
-                            if (allPartyJobsContained)
+                            if (!skipJobCheck)
                             {
-                                PluginLog.Information($"We can process this rule: {rule.GUID}");
+                                if (!rule.Jobs.Contains(Player.Job))
+                                {
+                                    PluginLog.Debug($"Job check failed.");
+                                    continue;
+                                }
+                                PluginLog.Debug($"Job check passed.");
+                            }
+
+                            if (!skipPartyJobCheck)
+                            {
+                                var partyJobs = GetPartyMemberJobs();
+                                bool allRuleJobsInParty = true;
+
+                                foreach (var requiredJob in rule.PartyJobs)
+                                {
+                                    if (!partyJobs.Contains(requiredJob.ToString()))
+                                    {
+                                        allRuleJobsInParty = false;
+                                        PluginLog.Debug($"Party job check failed: required job {requiredJob} not present.");
+                                        break;
+                                    }
+                                }
+
+                                if (!allRuleJobsInParty)
+                                {
+                                    continue;
+                                }
+
+                                PluginLog.Debug($"Party job check passed.");
+                            }
+
+                            if (rule.SelectedPresets.Count == 0)
+                            {
+                                PluginLog.Error($"Rule {rule.GUID} has no selected presets.");
+                                continue;
+                            }
+
+                            string presetNameToUse = rule.SelectedPresets[0];
+                            int presetIndex = C.GlobalProfile.Presets.FindIndex(x => x.Name.EqualsIgnoreCase(presetNameToUse));
+
+                            if (presetIndex == -1)
+                            {
+                                PluginLog.Error($"Preset '{presetNameToUse}' not found for rule {rule.GUID}.");
+                                continue;
                             }
 
                             try
                             {
-                                // Grab the preset from this rule, and break out of the loop at the end.
-                                string? presetNameToUse = rule.SelectedPresets.First();
-
-                                if (presetNameToUse != null)
-                                {
-                                    Preset presetToUse = C.GlobalProfile.Presets[C.GlobalProfile.Presets.FindIndex(x => x.Name.EqualsIgnoreCase(presetNameToUse))];
-                                    SortPartyList(presetToUse);
-                                } 
-                                else
-                                {
-                                    PluginLog.Error($"No preset found for rule: {rule.GUID}");
-                                    continue;
-                                }
-                            } 
-                            catch
-                            {
-                                PluginLog.Error($"Error while trying to get the preset from rule {rule.GUID}");
-                                continue;
+                                Preset presetToUse = C.GlobalProfile.Presets[presetIndex];
+                                SortPartyList(presetToUse);
+                                PluginLog.Information($"Processed rule {rule.GUID}. All other rules skipped.");
                             }
-
-                            PluginLog.Information($"Processed rule {rule.GUID}! All other rules will be ignored, as this was first found one that matches current conditions.");
+                            catch (Exception ex)
+                            {
+                                PluginLog.Error($"Exception while processing rule {rule.GUID}: {ex.Message}");
+                            }
                             break;
                         }
                     }
@@ -250,11 +257,71 @@ public unsafe class PartySortPlus: IDalamudPlugin
     private void SortPartyList(Preset presetToUse)
     {
         PluginLog.Information($"Sorting party list with preset {presetToUse.Name}.");
+
+        int partyCount = (int)InfoProxyPartyMember.Instance()->GetEntryCount();
+
+        var currentJobsSnapshot = GetPartyMemberJobs();
+        var used = new bool[partyCount];
+        var targetOrder = new List<string>();
+
+        foreach (var job in presetToUse.JobOrder)
+        {
+            for (int i = 0; i < partyCount; i++)
+            {
+                if (!used[i] && currentJobsSnapshot[i].Equals(job.ToString(), StringComparison.OrdinalIgnoreCase))
+                {
+                    targetOrder.Add(currentJobsSnapshot[i]);
+                    used[i] = true;
+                    break;
+                }
+            }
+        }
+
+        for (int i = 0; i < partyCount; i++)
+        {
+            if (!used[i])
+            {
+                targetOrder.Add(currentJobsSnapshot[i]);
+            }
+        }
+
+        PluginLog.Debug($"Target job order: {string.Join(", ", targetOrder)}");
+        PluginLog.Debug($"Current job order: {string.Join(", ", currentJobsSnapshot)}");
+
+        for (int i = 0; i < targetOrder.Count; i++)
+        {
+            var currentJobs = GetPartyMemberJobs();
+            var currentIndices = GetPartyMemberJobsByIndex();
+
+            if (currentJobs[i].Equals(targetOrder[i], StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            int swapIndex = -1;
+            for (int j = i + 1; j < partyCount; j++)
+            {
+                if (currentJobs[j].Equals(targetOrder[i], StringComparison.OrdinalIgnoreCase))
+                {
+                    swapIndex = j;
+                    break;
+                }
+            }
+
+            if (swapIndex == -1)
+            {
+                continue;
+            }
+
+            PluginLog.Information($"Swapping {currentJobs[swapIndex]} (index {currentIndices[swapIndex]}) into position {i}");
+            InfoProxyPartyMember.Instance()->ChangeOrder(currentIndices[swapIndex], i);
+        }
     }
 
     private List<string> GetPartyMemberJobs()
     {
-        var partyJobs = new List<string>();
+        var members = new List<(int Index, string Job)>();
+
         foreach (ref var partyMember in AgentHUD.Instance()->PartyMembers)
         {
             if (partyMember.Object != null)
@@ -262,10 +329,29 @@ public unsafe class PartySortPlus: IDalamudPlugin
                 var job = ECommons.ExcelServices.ExcelJobHelper.GetJobById(partyMember.Object->ClassJob);
                 if (job.HasValue)
                 {
-                    partyJobs.Add(job.Value.Abbreviation.ToString());
+                    members.Add((partyMember.Index, job.Value.Abbreviation.ToString()));
                 }
             }
         }
-        return partyJobs;
+
+        members.Sort((a, b) => a.Index.CompareTo(b.Index));
+
+        return members.Select(m => m.Job).ToList();
+    }
+
+    private List<int> GetPartyMemberJobsByIndex()
+    {
+        var indices = new List<int>();
+
+        foreach (ref var partyMember in AgentHUD.Instance()->PartyMembers)
+        {
+            if (partyMember.Object != null)
+            {
+                indices.Add(partyMember.Index);
+            }
+        }
+
+        indices.Sort();
+        return indices;
     }
 }

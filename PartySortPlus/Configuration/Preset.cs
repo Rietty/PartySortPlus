@@ -13,7 +13,7 @@ namespace PartySortPlus.Configuration
         [NonSerialized] internal string GUID = Guid.NewGuid().ToString();
         public string Name = "";
         public List<Job> JobOrder = new();
-        public bool isPlayerAtTop = true;
+        public bool isPlayerAtTop = false;
 
         public Preset(string name)
         {

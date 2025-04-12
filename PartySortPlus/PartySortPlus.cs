@@ -62,6 +62,7 @@ public unsafe class PartySortPlus: IDalamudPlugin
             EzCmd.Add("/psp", OnCommand, "Run a party list sort!"
                 + "\n/psp ui → Show the configuration window."
                 + "\n/psp config → Show the configuration window."
+                + "\n/psp tutorial → Show the tutorial window again."
             );
 
             new EzFrameworkUpdate(OnUpdate);

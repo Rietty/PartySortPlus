@@ -18,7 +18,6 @@ namespace PartySortPlus
     public static unsafe class Utils
     {
         public static Vector2 CellPadding => ImGui.GetStyle().CellPadding + new Vector2(0, 2);
-        private static Vector2 iconSize => new(24f);
 
         public static Profile GetProfile()
         {

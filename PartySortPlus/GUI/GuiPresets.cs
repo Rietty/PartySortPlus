@@ -1,4 +1,5 @@
 using Dalamud.Interface;
+using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
 using ECommons.Configuration;
 using ECommons.ExcelServices;
@@ -18,6 +19,8 @@ namespace PartySortPlus.GUI
         {
             if (PartySortPlus.C == null) return;
 
+            Vector2? lastButtonPosition = null;
+
             using (var leftPanelStyle = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, Vector2.Zero).Push(ImGuiStyleVar.WindowPadding, Vector2.Zero))
             {
                 using (var leftPanelChild = ImRaii.Child("LeftPanel", new Vector2(200, ImGui.GetContentRegionAvail().Y), true))
@@ -34,6 +37,7 @@ namespace PartySortPlus.GUI
                                     if (ImGui.Selectable(preset.Name, PartySortPlus.C.GlobalProfile.SelectedPreset == preset))
                                     {
                                         PartySortPlus.C.GlobalProfile.SelectedPreset = preset;
+                                        lastButtonPosition = ImGui.GetItemRectMin();
                                     }
                                 }
                             }
@@ -46,6 +50,7 @@ namespace PartySortPlus.GUI
                             var newPresetName = $"Preset {PartySortPlus.C.GlobalProfile.Presets.Count + 1}";
                             var newPreset = new Preset(newPresetName);
                             PartySortPlus.C.GlobalProfile.Presets.Add(newPreset);
+                            lastButtonPosition = ImGui.GetItemRectMin();
                         }
 
                         ImGui.SameLine();
@@ -57,6 +62,7 @@ namespace PartySortPlus.GUI
                                 PluginLog.Debug($"Deleting preset: {PartySortPlus.C.GlobalProfile.SelectedPreset.Name}");
                                 PartySortPlus.C.GlobalProfile.Presets.Remove(PartySortPlus.C.GlobalProfile.SelectedPreset);
                                 PartySortPlus.C.GlobalProfile.SelectedPreset = null;
+                                lastButtonPosition = ImGui.GetItemRectMin();
                             }
                         }
                         ImGuiEx.Tooltip("Hold CTRL+Click to delete");
@@ -96,6 +102,7 @@ namespace PartySortPlus.GUI
                             {
                                 ImGui.Text($"{selectedPreset.Name}");
                             }
+                            EzConfig.Save();
                         }
 
                         if (selectedPreset != null)
@@ -110,6 +117,7 @@ namespace PartySortPlus.GUI
                             }
 
                             ImGui.TextWrapped("Reorder jobs according to your desired sorting preferences.");
+                            ImGui.TextColored(ImGuiColors.DalamudYellow, "Hold CTRL+Click to move jobs to the top/bottom of the list.");
                             using (ImRaii.Child("JobOrderList", new Vector2(0, ImGui.GetContentRegionAvail().Y), true))
                             {
                                 var jobOrder = selectedPreset.JobOrder;
@@ -125,9 +133,14 @@ namespace PartySortPlus.GUI
                                     ImGui.BeginDisabled(!canMoveUp);
                                     if (ImGuiEx.IconButton(FontAwesomeIcon.ArrowUp, $"##up_{i}"))
                                     {
-                                        (jobOrder[i - 1], jobOrder[i]) = (jobOrder[i], jobOrder[i - 1]);
-                                        PluginLog.Debug($"Moved job '{job}' up to position {i - 1}");
+                                        int targetPosition = ImGui.GetIO().KeyCtrl ? 0 : i - 1;
+                                        for (int j = i; j > targetPosition; j--)
+                                        {
+                                            (jobOrder[j - 1], jobOrder[j]) = (jobOrder[j], jobOrder[j - 1]);
+                                        }
+                                        PluginLog.Debug($"Moved job '{job}' to position {targetPosition}");
                                         EzConfig.Save();
+                                    
                                     }
                                     ImGui.EndDisabled();
 
@@ -136,8 +149,12 @@ namespace PartySortPlus.GUI
                                     ImGui.BeginDisabled(!canMoveDown);
                                     if (ImGuiEx.IconButton(FontAwesomeIcon.ArrowDown, $"##down_{i}"))
                                     {
-                                        (jobOrder[i], jobOrder[i + 1]) = (jobOrder[i + 1], jobOrder[i]);
-                                        PluginLog.Debug($"Moved job '{job}' down to position {i + 1}");
+                                        int targetPosition = ImGui.GetIO().KeyCtrl ? jobOrder.Count - 1 : i + 1;
+                                        for (int j = i; j < targetPosition; j++)
+                                        {
+                                            (jobOrder[j], jobOrder[j + 1]) = (jobOrder[j + 1], jobOrder[j]);
+                                        }
+                                        PluginLog.Debug($"Moved job '{job}' to position {targetPosition}");
                                         EzConfig.Save();
                                     }
                                     ImGui.EndDisabled();
@@ -148,6 +165,7 @@ namespace PartySortPlus.GUI
                                     {
                                         ImGui.Image(texture.ImGuiHandle, iconSize);
                                     }
+
                                     ImGui.SameLine();
                                     var cursor = ImGui.GetCursorPos();
                                     ImGui.SetCursorPos(new Vector2(cursor.X - 5, cursor.Y + 4));

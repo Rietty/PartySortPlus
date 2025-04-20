@@ -17,10 +17,14 @@ using System.Collections.Generic;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using System.Linq;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
-using ECommons.ExcelServices;
 
 namespace PartySortPlus;
 
+/**
+ * TODO LIST: 
+ * - Add in usage of base classes for jobs when sorting.
+ * - Figure out drag and drop issue.
+ */
 public unsafe class PartySortPlus: IDalamudPlugin
 {
     public static PartySortPlus? P;

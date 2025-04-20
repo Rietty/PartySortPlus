@@ -19,8 +19,6 @@ namespace PartySortPlus.GUI
         {
             if (PartySortPlus.C == null) return;
 
-            Vector2? lastButtonPosition = null;
-
             using (var leftPanelStyle = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, Vector2.Zero).Push(ImGuiStyleVar.WindowPadding, Vector2.Zero))
             {
                 using (var leftPanelChild = ImRaii.Child("LeftPanel", new Vector2(200, ImGui.GetContentRegionAvail().Y), true))
@@ -37,7 +35,6 @@ namespace PartySortPlus.GUI
                                     if (ImGui.Selectable(preset.Name, PartySortPlus.C.GlobalProfile.SelectedPreset == preset))
                                     {
                                         PartySortPlus.C.GlobalProfile.SelectedPreset = preset;
-                                        lastButtonPosition = ImGui.GetItemRectMin();
                                     }
                                 }
                             }
@@ -50,7 +47,6 @@ namespace PartySortPlus.GUI
                             var newPresetName = $"Preset {PartySortPlus.C.GlobalProfile.Presets.Count + 1}";
                             var newPreset = new Preset(newPresetName);
                             PartySortPlus.C.GlobalProfile.Presets.Add(newPreset);
-                            lastButtonPosition = ImGui.GetItemRectMin();
                         }
 
                         ImGui.SameLine();
@@ -62,7 +58,6 @@ namespace PartySortPlus.GUI
                                 PluginLog.Debug($"Deleting preset: {PartySortPlus.C.GlobalProfile.SelectedPreset.Name}");
                                 PartySortPlus.C.GlobalProfile.Presets.Remove(PartySortPlus.C.GlobalProfile.SelectedPreset);
                                 PartySortPlus.C.GlobalProfile.SelectedPreset = null;
-                                lastButtonPosition = ImGui.GetItemRectMin();
                             }
                         }
                         ImGuiEx.Tooltip("Hold CTRL+Click to delete");
@@ -95,6 +90,7 @@ namespace PartySortPlus.GUI
                                 ImGui.InputText("##EditName", ref selectedPreset.Name, 100);
                                 if (ImGui.IsItemDeactivated())
                                 {
+                                    EzConfig.Save();
                                     PartySortPlus.C.GlobalProfile.isEditingPresetName = false;
                                 }
                             }
@@ -102,7 +98,6 @@ namespace PartySortPlus.GUI
                             {
                                 ImGui.Text($"{selectedPreset.Name}");
                             }
-                            EzConfig.Save();
                         }
 
                         if (selectedPreset != null)

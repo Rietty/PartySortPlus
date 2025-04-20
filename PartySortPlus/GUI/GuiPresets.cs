@@ -109,7 +109,7 @@ namespace PartySortPlus.GUI
                                 ImGui.EndDisabled();
                             }
 
-                            ImGui.TextWrapped("You can drag and drop jobs to reorder them according to your desired sorting preferences.");
+                            ImGui.TextWrapped("Reorder jobs according to your desired sorting preferences.");
                             using (ImRaii.Child("JobOrderList", new Vector2(0, ImGui.GetContentRegionAvail().Y), true))
                             {
                                 var jobOrder = selectedPreset.JobOrder;
